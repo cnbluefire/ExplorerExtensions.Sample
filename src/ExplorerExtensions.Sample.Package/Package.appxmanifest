@@ -1,0 +1,86 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap2="http://schemas.microsoft.com/appx/manifest/uap/windows10/2"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:desktop2="http://schemas.microsoft.com/appx/manifest/desktop/windows10/2"
+  xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4"
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap2 uap3 desktop2 desktop4 rescap">
+
+	<Identity
+	  Name="8f84175a-1ad4-4a4c-9621-ec8b69e3fad3"
+	  Publisher="CN=user3"
+	  Version="1.0.0.0" />
+
+	<Properties>
+		<DisplayName>ExplorerExtensions.Sample.Package</DisplayName>
+		<PublisherDisplayName>user3</PublisherDisplayName>
+		<Logo>Images\StoreLogo.png</Logo>
+	</Properties>
+
+	<Dependencies>
+		<TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.0.0" MaxVersionTested="10.0.0.0" />
+		<TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.14393.0" MaxVersionTested="10.0.14393.0" />
+		<PackageDependency Name="Microsoft.VCLibs.140.00.UWPDesktop" MinVersion="14.0.24217.0" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" />
+	</Dependencies>
+
+	<Resources>
+		<Resource Language="x-generate"/>
+	</Resources>
+
+	<Applications>
+		<Application Id="App"
+		  Executable="$targetnametoken$.exe"
+		  EntryPoint="$targetentrypoint$">
+			<uap:VisualElements
+			  DisplayName="ExplorerExtensions.Sample.Package"
+			  Description="ExplorerExtensions.Sample.Package"
+			  BackgroundColor="transparent"
+			  Square150x150Logo="Images\Square150x150Logo.png"
+			  Square44x44Logo="Images\Square44x44Logo.png">
+				<uap:DefaultTile Wide310x150Logo="Images\Wide310x150Logo.png" />
+				<uap:SplashScreen Image="Images\SplashScreen.png" />
+			</uap:VisualElements>
+			<Extensions>
+				<com:Extension Category="windows.comServer">
+					<com:ComServer>
+						<com:SurrogateServer SystemSurrogate="PreviewHost" DisplayName="ExplorerExtensions">
+							<com:Class Id="D0CCA119-3218-4EC9-B090-19C95031E349" Path="ExplorerExtensions.Sample\ExplorerExtensions.dll" ThreadingModel="Both"/>
+						</com:SurrogateServer>
+						<com:SurrogateServer AppId="C41D6460-8AC9-40B7-A62E-584237875943" DisplayName="ExplorerExtensions">
+							<com:Class Id="C41D6460-8AC9-40B7-A62E-584237875943" Path="ExplorerExtensions.Sample\ExplorerExtensions.dll" ThreadingModel="Both"/>
+							<com:Class Id="67E0A595-8696-426D-A41B-6E17A926A516" Path="ExplorerExtensions.Sample\ExplorerExtensions.dll" ThreadingModel="Both"/>
+						</com:SurrogateServer>
+					</com:ComServer>
+				</com:Extension>
+
+				<uap:Extension Category="windows.fileTypeAssociation">
+					<uap:FileTypeAssociation Name="abc">
+						<uap:SupportedFileTypes>
+							<uap:FileType>.abc</uap:FileType>
+						</uap:SupportedFileTypes>
+						<desktop2:DesktopPreviewHandler Clsid="D0CCA119-3218-4EC9-B090-19C95031E349" />
+					</uap:FileTypeAssociation>
+				</uap:Extension>
+
+				<desktop4:Extension Category="windows.fileExplorerContextMenus">
+					<desktop4:FileExplorerContextMenus>
+						<desktop4:ItemType Type=".abc">
+							<desktop4:Verb Id="DemoCommand" Clsid="C41D6460-8AC9-40B7-A62E-584237875943" />
+						</desktop4:ItemType>
+					</desktop4:FileExplorerContextMenus>
+				</desktop4:Extension>
+
+			</Extensions>
+		</Application>
+	</Applications>
+
+	<Capabilities>
+		<Capability Name="internetClient" />
+		<rescap:Capability Name="runFullTrust" />
+	</Capabilities>
+</Package>

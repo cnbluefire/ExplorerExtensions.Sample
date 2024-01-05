@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Platforms>x86;x64;ARM64</Platforms>
+		<RuntimeIdentifiers>win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<UseRidGraph>true</UseRidGraph>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="NativeLibs\**\*.dll">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)' == 'Debug'">
+		<None Include="NativeLibs\**\*.pdb">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+		</None>
+	</ItemGroup>
+
+	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+		<Exec Command="set DOTNET_CLI_UI_LANGUAGE=en&amp;&amp;dotnet publish &quot;$(MSBuildThisFileDirectory)..\ExplorerExtensions\ExplorerExtensions.csproj&quot; -r win-x64 -c Release --use-current-runtime -o &quot;$(MSBuildThisFileDirectory)NativeLibs\&quot;" />
+	</Target>
+
+</Project>
