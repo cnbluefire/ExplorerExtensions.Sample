@@ -18,8 +18,13 @@ namespace ExplorerExtensions
             createFunctions = new Dictionary<Guid, Func<object>>()
             {
                 [typeof(Demos.DemoPreviewHandler).GUID] = () => new Demos.DemoPreviewHandler(),
-                [typeof(Demos.DemoExplorerCommandState).GUID] = () => new Demos.DemoExplorerCommandState(),
-                [typeof(Demos.DemoExplorerCommandVerb).GUID] = () => new Demos.DemoExplorerCommandVerb(),
+                [typeof(Demos.DemoExplorerCommandVerb).GUID] = () =>
+                    new Demos.DemoExplorerCommandVerb("Demo Context Menu",
+                    [
+                        new Demos.DemoExplorerCommandVerb("Child Context Menu 1", null),
+                        new Demos.DemoExplorerCommandVerb("Child Context Menu 2", null),
+                        new Demos.DemoExplorerCommandVerb("Child Context Menu 3", null)
+                    ]),
             };
         }
 

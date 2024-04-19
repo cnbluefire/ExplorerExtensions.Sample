@@ -102,7 +102,7 @@ namespace ExplorerExtensions
         unsafe int GetFlags(uint* pFlags);
 
         [PreserveSig]
-        unsafe int EnumSubCommands(Windows.Win32.UI.Shell.IEnumExplorerCommand** ppEnum);
+        unsafe int EnumSubCommands(out IEnumExplorerCommand? ppEnum);
     }
 
     [GeneratedComInterface]
@@ -119,5 +119,23 @@ namespace ExplorerExtensions
     {
         [PreserveSig]
         unsafe int GetState(Windows.Win32.UI.Shell.IShellItemArray* psiItemArray, [MarshalAs(UnmanagedType.Bool)] bool fOkToBeSlow, uint* pCmdState);
+    }
+
+
+    [GeneratedComInterface]
+    [Guid("A88826F8-186F-4987-AADE-EA0CEF8FBFE8")]
+    internal partial interface IEnumExplorerCommand
+    {
+        [PreserveSig]
+        unsafe int Next(uint celt, void** pUICommand, uint* pceltFetched);
+
+        [PreserveSig]
+        int Skip(uint celt);
+
+        [PreserveSig]
+        int Reset();
+
+        [PreserveSig]
+        unsafe int Clone(out IEnumExplorerCommand? ppenum);
     }
 }

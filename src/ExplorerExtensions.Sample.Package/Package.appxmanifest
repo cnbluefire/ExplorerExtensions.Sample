@@ -53,7 +53,6 @@
 						</com:SurrogateServer>
 						<com:SurrogateServer AppId="C41D6460-8AC9-40B7-A62E-584237875943" DisplayName="ExplorerExtensions">
 							<com:Class Id="C41D6460-8AC9-40B7-A62E-584237875943" Path="ExplorerExtensions.Sample\ExplorerExtensions.dll" ThreadingModel="Both"/>
-							<com:Class Id="67E0A595-8696-426D-A41B-6E17A926A516" Path="ExplorerExtensions.Sample\ExplorerExtensions.dll" ThreadingModel="Both"/>
 						</com:SurrogateServer>
 					</com:ComServer>
 				</com:Extension>

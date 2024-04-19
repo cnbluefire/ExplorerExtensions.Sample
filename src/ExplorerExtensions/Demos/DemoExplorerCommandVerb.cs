@@ -19,25 +19,48 @@ namespace ExplorerExtensions.Demos
     [Guid("C41D6460-8AC9-40B7-A62E-584237875943")]
     internal unsafe partial class DemoExplorerCommandVerb : IExplorerCommand, IInitializeCommand, IObjectWithSite
     {
+        private readonly string contextMenuName;
+        private readonly IExplorerCommand[]? childCommands;
+
+        internal DemoExplorerCommandVerb() : this("Demo Context Menu", null) { }
+
+        internal DemoExplorerCommandVerb(string contextMenuName, IExplorerCommand[]? childCommands)
+        {
+            this.contextMenuName = contextMenuName;
+            this.childCommands = childCommands;
+        }
+
+
         #region IExplorerCommand
 
         private IStream* _pstmShellItemArray;
 
-        public unsafe int EnumSubCommands(Windows.Win32.UI.Shell.IEnumExplorerCommand** ppEnum)
+
+        public unsafe int EnumSubCommands(out IEnumExplorerCommand? ppEnum)
         {
-            *ppEnum = (Windows.Win32.UI.Shell.IEnumExplorerCommand*)0;
-            return DllMain.E_NOTIMPL;
+            if (childCommands == null)
+            {
+                ppEnum = null;
+                return DllMain.E_NOTIMPL;
+            }
+
+            ppEnum = new DemoExplorerCommandEnumerator(childCommands);
+            return DllMain.S_OK;
         }
 
         public unsafe int GetCanonicalName(Guid* pguidCommandName)
         {
-            *pguidCommandName = typeof(DemoExplorerCommandVerb).GUID;
-            return DllMain.S_OK;
+            *pguidCommandName = Guid.Empty;
+            return DllMain.E_NOTIMPL;
         }
 
         public unsafe int GetFlags(uint* pFlags)
         {
             *pFlags = (uint)_EXPCMDFLAGS.ECF_DEFAULT;
+            if (childCommands != null && childCommands.Length > 0)
+            {
+                *pFlags |= (uint)_EXPCMDFLAGS.ECF_HASSUBCOMMANDS;
+            }
             return DllMain.S_OK;
         }
 
@@ -63,9 +86,7 @@ namespace ExplorerExtensions.Demos
 
         public unsafe int GetTitle(Windows.Win32.UI.Shell.IShellItemArray* psiItemArray, PWSTR* ppszName)
         {
-            const string ContextMenuName = "Demo Context Menu";
-
-            fixed (char* pStr = ContextMenuName)
+            fixed (char* pStr = contextMenuName)
             {
                 return Windows.Win32.PInvoke.SHStrDup(pStr, ppszName).Value;
             }
