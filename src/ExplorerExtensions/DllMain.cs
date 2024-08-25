@@ -102,5 +102,35 @@ namespace ExplorerExtensions
             }
             return E_NOINTERFACE;
         }
+
+        internal static unsafe int GetFolderFromSite(nint site, Guid* riid, void** folder)
+        {
+            if (site == 0) return E_NOTIMPL;
+
+            void* pFolderView = null;
+
+            ((Windows.Win32.System.Com.IUnknown*)site)->AddRef();
+            try
+            {
+                var IID_FolderView = new Guid(0xCDE725B0, 0xCCC9, 0x4519, 0x91, 0x7E, 0x32, 0x5D, 0x72, 0xFA, 0xB4, 0xCE);
+
+                var hr = Windows.Win32.PInvoke.IUnknown_QueryService(
+                    (Windows.Win32.System.Com.IUnknown*)site,
+                    &IID_FolderView,
+                    &IID_FolderView,
+                    &pFolderView);
+
+                if (hr.Failed) return hr.Value;
+
+                return ((delegate* unmanaged[Stdcall]<void*, Guid*, void**, Windows.Win32.Foundation.HRESULT>)(*(void***)pFolderView)[5])(pFolderView, riid, folder);
+
+            }
+            finally
+            {
+                if (pFolderView != null) ((Windows.Win32.System.Com.IUnknown*)pFolderView)->Release();
+
+                ((Windows.Win32.System.Com.IUnknown*)site)->Release();
+            }
+        }
     }
 }

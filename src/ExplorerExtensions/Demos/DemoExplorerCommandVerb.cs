@@ -7,11 +7,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Windows.Win32.Foundation;
 using Windows.Win32.System.Com;
-
 using _EXPCMDSTATE = Windows.Win32.UI.Shell._EXPCMDSTATE;
 using _EXPCMDFLAGS = Windows.Win32.UI.Shell._EXPCMDFLAGS;
 using IPropertyBag = Windows.Win32.System.Com.StructuredStorage.IPropertyBag;
-using System.Runtime.CompilerServices;
 
 namespace ExplorerExtensions.Demos
 {
@@ -34,7 +32,6 @@ namespace ExplorerExtensions.Demos
         #region IExplorerCommand
 
         private IStream* _pstmShellItemArray;
-
 
         public unsafe int EnumSubCommands(out IEnumExplorerCommand? ppEnum)
         {
@@ -100,58 +97,51 @@ namespace ExplorerExtensions.Demos
 
         public unsafe int Invoke(Windows.Win32.UI.Shell.IShellItemArray* psiItemArray, IBindCtx* pbc)
         {
-            if (Windows.Win32.PInvoke.IUnknown_GetWindow(_punkSite, out var hwnd).Failed)
+            var context = CreateInvokeContext(this, psiItemArray);
+
+            var thread = new Thread(static state =>
             {
-                hwnd = (HWND)0;
-            }
+                var sb = new StringBuilder();
 
-            fixed (Guid* iid = &Windows.Win32.UI.Shell.IShellItemArray.IID_Guid)
-            fixed (IStream** pp = &_pstmShellItemArray)
-            {
-                var _hr = Windows.Win32.PInvoke.CoMarshalInterThreadInterfaceInStream(iid, (IUnknown*)psiItemArray, pp);
-
-                if (!_hr.Succeeded) return _hr;
-            }
-
-            var iunk = DllMain.ComWrappers.GetOrCreateComInterfaceForObject(this, CreateComInterfaceFlags.None);
-
-            ((IUnknown*)iunk)->AddRef();
-
-            Task.Run(() =>
-            {
-                var hr = Windows.Win32.PInvoke.CoGetInterfaceAndReleaseStream(_pstmShellItemArray, Windows.Win32.UI.Shell.IShellItemArray.IID_Guid, out var ppv);
-                _pstmShellItemArray = default;
-                if (hr.Succeeded)
+                ((InvokeContext)state!).Unwrap(out var command, out var shellItemArray, out var folderItem, out var hWnd);
+                
+                if (folderItem != null)
                 {
-                    var array = (Windows.Win32.UI.Shell.IShellItemArray*)ppv;
+                    folderItem->GetDisplayName(Windows.Win32.UI.Shell.SIGDN.SIGDN_DESKTOPABSOLUTEPARSING, out var pDisplayName);
 
-                    try
-                    {
-                        uint count = 0;
-                        array->GetCount(&count);
-
-                        var sb = new StringBuilder();
-
-                        for (uint i = 0; i < count; i++)
-                        {
-                            var shellItem = (Windows.Win32.UI.Shell.IShellItem*)0;
-                            array->GetItemAt(i, &shellItem);
-
-                            shellItem->GetDisplayName(Windows.Win32.UI.Shell.SIGDN.SIGDN_PARENTRELATIVEPARSING, out var pDisplayName);
-
-                            var displayName = pDisplayName.ToString();
-                            sb.AppendLine(displayName);
-
-                            Marshal.FreeCoTaskMem((nint)pDisplayName.Value);
-                        }
-
-                        Windows.Win32.PInvoke.MessageBox(hwnd, sb.ToString(), "DemoExplorerCommandVerb", Windows.Win32.UI.WindowsAndMessaging.MESSAGEBOX_STYLE.MB_OK);
-                    }
-                    catch { }
+                    var displayName = pDisplayName.ToString();
+                    sb.Append("Folder: ").AppendLine(displayName);
                 }
 
-                ((IUnknown*)iunk)->Release();
-            });
+                if (shellItemArray != null)
+                {
+                    uint count = 0;
+                    shellItemArray->GetCount(&count);
+
+                    for (uint i = 0; i < count; i++)
+                    {
+                        var shellItem = (Windows.Win32.UI.Shell.IShellItem*)0;
+                        shellItemArray->GetItemAt(i, &shellItem);
+
+                        shellItem->GetDisplayName(Windows.Win32.UI.Shell.SIGDN.SIGDN_DESKTOPABSOLUTEPARSING, out var pDisplayName);
+
+                        var displayName = pDisplayName.ToString();
+                        sb.Append("File: ").AppendLine(displayName);
+
+                        Marshal.FreeCoTaskMem((nint)pDisplayName.Value);
+                    }
+                }
+
+                Windows.Win32.PInvoke.MessageBox((HWND)hWnd, sb.ToString(), "DemoExplorerCommandVerb", Windows.Win32.UI.WindowsAndMessaging.MESSAGEBOX_STYLE.MB_OK);
+
+
+            })
+            {
+                IsBackground = true,
+                Name = "DemoExplorerCommandVerb::Invoke",
+            };
+            thread.SetApartmentState(ApartmentState.MTA);
+            thread.Start(context);
 
             return DllMain.S_OK;
         }
@@ -174,10 +164,13 @@ namespace ExplorerExtensions.Demos
 
         public unsafe int GetSite(Guid* riid, void** ppvSite)
         {
-            *ppvSite = (void*)0;
-            if (_punkSite != (void*)0)
+            if (_punkSite != null)
             {
                 return _punkSite->QueryInterface(riid, ppvSite);
+            }
+            else
+            {
+                *ppvSite = null;
             }
             return DllMain.E_FAIL;
         }
@@ -195,5 +188,114 @@ namespace ExplorerExtensions.Demos
         }
 
         #endregion IObjectWithSite
+
+        private static InvokeContext CreateInvokeContext(DemoExplorerCommandVerb command, Windows.Win32.UI.Shell.IShellItemArray* shellItemArray)
+        {
+            Windows.Win32.UI.Shell.IShellItem* folder = null;
+            nint hWnd = 0;
+
+            fixed (Guid* riid_IShellItem = &Windows.Win32.UI.Shell.IShellItem.IID_Guid)
+            fixed (Guid* riid_IUnknown = &IUnknown.IID_Guid)
+            {
+                IUnknown* site = null;
+                try
+                {
+                    var hr = (HRESULT)command.GetSite(riid_IUnknown, (void**)&site);
+
+                    if (hr.Succeeded)
+                    {
+                        hr = Windows.Win32.PInvoke.IUnknown_GetWindow(site, out var _hWnd);
+                        if (hr.Succeeded) hWnd = _hWnd.Value;
+
+                        hr = (HRESULT)DllMain.GetFolderFromSite((nint)site, riid_IShellItem, (void**)&folder);
+                        if (hr.Failed) folder = null;
+
+                        return new InvokeContext(command, shellItemArray, folder, hWnd);
+                    }
+                }
+                finally
+                {
+                    if (folder != null) folder->Release();
+                    if (site != null) site->Release();
+                }
+            }
+            return new InvokeContext(command, shellItemArray, null, default);
+        }
+
+
+        private class InvokeContext
+        {
+            private IStream* shellItemArrayStream;
+            private IStream* folderStream;
+            private DemoExplorerCommandVerb? command;
+            private nint hWnd;
+            public InvokeContext(
+                DemoExplorerCommandVerb command,
+                Windows.Win32.UI.Shell.IShellItemArray* shellItemArray,
+                Windows.Win32.UI.Shell.IShellItem* folder,
+                nint hWnd)
+            {
+                this.command = command;
+                this.hWnd = hWnd;
+
+                if (folder != null)
+                {
+                    fixed (Guid* riid_IShellItemArray = &Windows.Win32.UI.Shell.IShellItemArray.IID_Guid)
+                    fixed (IStream** pStream1 = &shellItemArrayStream)
+                    {
+                        var hr = Windows.Win32.PInvoke.CoMarshalInterThreadInterfaceInStream(riid_IShellItemArray, (IUnknown*)shellItemArray, pStream1);
+                        if (hr.Failed) shellItemArrayStream = null;
+                    }
+                }
+
+                if (folder != null)
+                {
+                    fixed (Guid* riid_IShellItem = &Windows.Win32.UI.Shell.IShellItem.IID_Guid)
+                    fixed (IStream** pStream2 = &folderStream)
+                    {
+                        var hr = Windows.Win32.PInvoke.CoMarshalInterThreadInterfaceInStream(riid_IShellItem, (IUnknown*)folder, pStream2);
+                        if (hr.Failed) folderStream = null;
+
+                    }
+                }
+            }
+            public void Unwrap(
+                out DemoExplorerCommandVerb? command,
+                out Windows.Win32.UI.Shell.IShellItemArray* shellItemArray,
+                out Windows.Win32.UI.Shell.IShellItem* folder,
+                out nint hWnd)
+            {
+                command = this.command;
+
+                shellItemArray = null;
+                folder = null;
+                hWnd = this.hWnd;
+
+                this.command = null;
+                this.hWnd = 0;
+
+                if (shellItemArrayStream != null)
+                {
+                    fixed (Guid* riid_IShellItemArray = &Windows.Win32.UI.Shell.IShellItemArray.IID_Guid)
+                    fixed (Windows.Win32.UI.Shell.IShellItemArray** pShellItemArray = &shellItemArray)
+                    {
+                        var hr = Windows.Win32.PInvoke.CoGetInterfaceAndReleaseStream(shellItemArrayStream, riid_IShellItemArray, (void**)pShellItemArray);
+                        if (hr.Failed) shellItemArray = null;
+                        shellItemArrayStream = null;
+                    }
+                }
+
+                if (folderStream != null)
+                {
+                    fixed (Guid* riid_IShellItem = &Windows.Win32.UI.Shell.IShellItem.IID_Guid)
+                    fixed (Windows.Win32.UI.Shell.IShellItem** pFolder = &folder)
+                    {
+                        var hr = Windows.Win32.PInvoke.CoGetInterfaceAndReleaseStream(folderStream, riid_IShellItem, (void**)pFolder);
+                        if (hr.Failed) folder = null;
+                        folderStream = null;
+                    }
+                }
+            }
+        }
     }
 }

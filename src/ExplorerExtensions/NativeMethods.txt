@@ -33,9 +33,10 @@ CoMarshalInterThreadInterfaceInStream
 CoGetInterfaceAndReleaseStream
 SHStrDup
 IUnknown_GetWindow
+IUnknown_QueryService
 
 SYS_COLOR_INDEX
 IDC_ARROW
 WM_*
 _EXPCMDSTATE
-ECF_DEFAULT
+_EXPCMDFLAGS
