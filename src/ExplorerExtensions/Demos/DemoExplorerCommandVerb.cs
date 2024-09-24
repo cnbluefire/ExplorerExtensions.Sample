@@ -104,7 +104,11 @@ namespace ExplorerExtensions.Demos
                 var sb = new StringBuilder();
 
                 ((InvokeContext)state!).Unwrap(out var command, out var shellItemArray, out var folderItem, out var hWnd);
-                
+
+                sb.Append("Dll Location: ").AppendLine(DllModule.Location);
+                sb.Append("BaseDirectory: ").AppendLine(DllModule.BaseDirectory);
+                sb.Append("CurrentPackagePath: ").AppendLine(DllModule.CurrentPackagePath);
+
                 if (folderItem != null)
                 {
                     folderItem->GetDisplayName(Windows.Win32.UI.Shell.SIGDN.SIGDN_DESKTOPABSOLUTEPARSING, out var pDisplayName);

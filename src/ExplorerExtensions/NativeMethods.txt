@@ -18,6 +18,8 @@ DestroyWindow
 CreateWindowEx
 RegisterClassEx
 GetModuleHandleW
+GetModuleHandleExW
+GetModuleFileNameW
 LoadCursor
 ShowWindow
 DefWindowProc
@@ -28,6 +30,7 @@ GetStockObject
 DrawText
 SelectObject
 InvalidateRect
+GetCurrentPackagePath
 
 CoMarshalInterThreadInterfaceInStream
 CoGetInterfaceAndReleaseStream
